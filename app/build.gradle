@@ -1,0 +1,115 @@
+import groovy.json.JsonSlurper
+
+apply plugin: 'com.android.application'
+apply plugin: "com.onesignal.androidsdk.onesignal-gradle-plugin"
+
+ext {
+    fbAppId = ""
+    onesignalAppId = ""
+}
+
+task parseAppConfig {
+    def jsonFile = file('src/main/assets/appConfig.json')
+    def parsedJson = new JsonSlurper().parseText(jsonFile.text)
+    if (parsedJson.services.facebook && parsedJson.services.facebook.appId) {
+        fbAppId = parsedJson.services.facebook.appId
+    }
+    if (parsedJson.services.oneSignal && parsedJson.services.oneSignal.applicationId) {
+        onesignalAppId = parsedJson.services.oneSignal.applicationId
+    }
+}
+build.dependsOn parseAppConfig
+
+android {
+    compileSdkVersion 30
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 30
+        applicationId "io.libernative.android.abc"
+        versionCode 4
+        multiDexEnabled true
+        vectorDrawables.useSupportLibrary = true
+
+        manifestPlaceholders = [manifestApplicationId: "${applicationId}",
+                                onesignal_app_id: onesignalAppId,
+                                onesignal_google_project_number: "",
+                                facebook_app_id: fbAppId ]
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../../release.keystore")
+            storePassword "password"
+            keyAlias "release"
+            keyPassword "password"
+        }
+        upload {
+            storeFile file("../../upload.keystore")
+            storePassword "password"
+            keyAlias "upload"
+            keyPassword "password"
+        }
+    }
+
+    buildTypes {
+        debug {
+	        applicationIdSuffix ".debug"
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+            zipAlignEnabled true
+            signingConfig signingConfigs.release
+        }
+        upload {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+            zipAlignEnabled true
+            signingConfig signingConfigs.upload
+        }
+    }
+
+    flavorDimensions "webview"
+
+    productFlavors {
+        normal {
+            dimension "webview"
+        }
+    }
+}
+
+dependencies {
+    /**** dependencies used by all apps ****/
+    implementation 'com.aurelhubert:ahbottomnavigation:2.3.4'
+    implementation "com.mikepenz:iconics-core:5.3.0-b01"
+    implementation 'com.mikepenz:fontawesome-typeface:5.13.3.0-kotlin@aar'
+    implementation 'com.facebook.android:facebook-android-sdk:9.1.1'
+    implementation 'com.squareup:seismic:1.0.2'
+    implementation 'com.onesignal:OneSignal:[4.0.0, 4.99.99]'
+    implementation 'com.facebook.android:facebook-login:[8.1)'
+    /**** end all apps ****/
+
+    /**** add-on module dependencies ****/
+    /**** end modules ****/
+    
+    /**** Google Android and Play Services dependencies ****/
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.browser:browser:1.2.0'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.gms:play-services-gcm:17.0.0'
+    implementation 'com.google.android.gms:play-services-location:17.0.0'
+    implementation 'com.google.android.gms:play-services-auth:19.2.0'
+    /**** end google ****/
+
+    /**** local dependencies ****/
+    implementation fileTree(dir: 'libs', include: '*.jar')
+    implementation fileTree(dir: 'libs', include: '*.aar')
+    /**** end local ****/
+}
